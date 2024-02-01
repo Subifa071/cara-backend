@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 import { USER_TYPE } from '../enums/user.enum';
 import { Password } from './password.entity';
+import { PaymentMethod } from './payment.entity';
 
 @Entity({ name: 'user' })
 export class User {
@@ -37,6 +38,9 @@ export class User {
 
   @OneToMany((type) => Password, (password) => password.user)
   passwords: Password[];
+
+  @OneToMany((type) => PaymentMethod, (paymentMethod) => paymentMethod.user)
+  payment_methods: PaymentMethod[];
 
   @CreateDateColumn()
   created_at: string;

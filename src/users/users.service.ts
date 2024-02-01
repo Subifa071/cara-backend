@@ -1,7 +1,7 @@
 import {
   BadRequestException,
   Injectable,
-  UnauthorizedException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -11,7 +11,7 @@ import { Repository } from 'typeorm';
 import { ConfigurationService } from '../configuration/configuration.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateUserProfileDto } from './dto/update-user.dto';
 import { Password } from './entities/password.entity';
 import { User } from './entities/user.entity';
 import { USER_TYPE } from './enums/user.enum';
@@ -64,7 +64,20 @@ export class UsersService {
     return `This action returns a #${id} user`;
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
+  async updateProfile(id: string, updateUserDto: UpdateUserProfileDto) {
+    try {
+      const user = await this.userRepository.findOne({
+        where: {
+          id: id,
+        },
+      });
+
+      if (!user) {
+        throw new BadRequestException('Invalid User');
+      }
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to update');
+    }
     return `This action updates a #${id} user`;
   }
 
@@ -90,9 +103,7 @@ export class UsersService {
     );
 
     if (alreadyCalled) {
-      throw new UnauthorizedException(
-        'Too many login attempts, try again later',
-      );
+      throw new BadRequestException('Too many login attempts, try again later');
     }
 
     const activePassword = user.passwords.find((password) => password.isActive);
@@ -108,6 +119,7 @@ export class UsersService {
         access_token: await this.jwtService.signAsync(withoutPasswords),
         requiresChange:
           dayjs().diff(dayjs(activePassword.createdAt), 'day') > 60,
+        user: withoutPasswords,
       };
     } else {
       // Check if user has already requested in last 5 mins
@@ -124,7 +136,7 @@ export class UsersService {
           1,
         );
 
-        throw new UnauthorizedException(
+        throw new BadRequestException(
           'Invalid password or user does not exists',
         );
       }
@@ -135,9 +147,7 @@ export class UsersService {
         alreadyCalled ? Number(alreadyCalled) + 1 : 1,
       );
 
-      throw new UnauthorizedException(
-        'Invalid password or user does not exists',
-      );
+      throw new BadRequestException('Invalid password or user does not exists');
     }
   }
 }

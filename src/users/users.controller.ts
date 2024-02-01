@@ -6,10 +6,14 @@ import {
   Param,
   Patch,
   Post,
+  UseGuards,
 } from '@nestjs/common';
+import { JWTGuard } from '../auth/auth.guard';
+import { ActiveUser } from '../utils/User';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateUserProfileDto } from './dto/update-user.dto';
+import { User } from './entities/user.entity';
 import { UsersService } from './users.service';
 
 @Controller('users')
@@ -36,9 +40,14 @@ export class UsersController {
     return this.usersService.findOne(+id);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.usersService.update(+id, updateUserDto);
+  @UseGuards(JWTGuard)
+  @Patch(':id/profile')
+  updateProfile(
+    @ActiveUser() user: User,
+    @Param('id') id: string,
+    @Body() updateUserDto: UpdateUserProfileDto,
+  ) {
+    return this.usersService.updateProfile(id, updateUserDto);
   }
 
   @Delete(':id')
