@@ -9,11 +9,9 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JWTGuard } from '../auth/auth.guard';
-import { ActiveUser } from '../utils/User';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
 import { UpdateUserProfileDto } from './dto/update-user.dto';
-import { User } from './entities/user.entity';
 import { UsersService } from './users.service';
 
 @Controller('users')
@@ -42,12 +40,11 @@ export class UsersController {
 
   @UseGuards(JWTGuard)
   @Patch(':id/profile')
-  updateProfile(
-    @ActiveUser() user: User,
+  async updateProfile(
     @Param('id') id: string,
     @Body() updateUserDto: UpdateUserProfileDto,
   ) {
-    return this.usersService.updateProfile(id, updateUserDto);
+    return await this.usersService.updateProfile(id, updateUserDto);
   }
 
   @Delete(':id')

@@ -19,7 +19,7 @@ export class Password {
   createdAt: string;
 
   @Column('bool', { default: true })
-  isActive: string;
+  isActive: boolean;
 
   @ManyToOne((type) => User, (user) => user.passwords)
   user: User;

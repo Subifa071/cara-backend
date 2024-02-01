@@ -65,8 +65,9 @@ export class UsersService {
   }
 
   async updateProfile(id: string, updateUserDto: UpdateUserProfileDto) {
+    let user;
     try {
-      const user = await this.userRepository.findOne({
+      user = await this.userRepository.findOne({
         where: {
           id: id,
         },
@@ -75,10 +76,66 @@ export class UsersService {
       if (!user) {
         throw new BadRequestException('Invalid User');
       }
+
+      // email can't be updated
+      const { password, email, ...updateUser } = updateUserDto;
+
+      await this.userRepository.update(
+        { id: id },
+        {
+          ...updateUser,
+        },
+      );
+
+      if (password) {
+        const passwords = await this.passwordRepository.find({
+          where: {
+            user: {
+              id: id,
+            },
+          },
+        });
+
+        const matchPassword = passwords.find((_password) => {
+          return bcrypt.compareSync(password, _password.password);
+        });
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        if (matchPassword) {
+          throw new BadRequestException(
+            'Cannot use the same or existing password twice',
+          );
+        }
+
+        const currentActivePassword = passwords.find(
+          (password) => password.isActive,
+        );
+
+        if (currentActivePassword) {
+          await this.passwordRepository.update(
+            { id: currentActivePassword.id },
+            { isActive: false },
+          );
+        }
+
+        await this.passwordRepository.save({
+          user: user,
+          isActive: true,
+          password: hashedPassword,
+        });
+      }
     } catch (error) {
-      throw new InternalServerErrorException('Failed to update');
+      throw new InternalServerErrorException(
+        error.message ?? 'Failed to update',
+      );
     }
-    return `This action updates a #${id} user`;
+
+    return await this.userRepository.findOne({
+      where: {
+        id: id,
+      },
+    });
   }
 
   remove(id: number) {

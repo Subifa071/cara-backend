@@ -42,7 +42,6 @@ export class JWTGuard extends AuthGuard('JWT') {
       // also need to check here whether the session is expired
 
       const payload = await this.jwtService.verifyAsync(token);
-
       request['user'] = payload;
     } catch (error) {
       throw new UnauthorizedException('Invalid token');
