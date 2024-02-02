@@ -2,10 +2,8 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { User } from './user.entity';
 
 @Entity({ name: 'payment_methods' })
 export class PaymentMethod {
@@ -26,7 +24,4 @@ export class PaymentMethod {
 
   @CreateDateColumn()
   createdAt: Date;
-
-  @ManyToOne((type) => User, (user) => user.payment_methods)
-  user: User;
 }

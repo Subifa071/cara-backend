@@ -6,9 +6,8 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { USER_TYPE } from '../enums/user.enum';
+import { Product } from '../../products/entities/product.entity';
 import { Password } from './password.entity';
-import { PaymentMethod } from './payment.entity';
 
 @Entity({ name: 'user' })
 export class User {
@@ -33,18 +32,18 @@ export class User {
   @Column('boolean', { default: false })
   suspended: boolean;
 
-  @Column('enum', { enum: USER_TYPE })
-  type: USER_TYPE;
+  @Column('boolean', { default: false })
+  isAdmin: boolean;
+
+  @OneToMany((type) => Product, (product) => product.owner)
+  products: Product[];
 
   @OneToMany((type) => Password, (password) => password.user)
   passwords: Password[];
 
-  @OneToMany((type) => PaymentMethod, (paymentMethod) => paymentMethod.user)
-  payment_methods: PaymentMethod[];
-
   @CreateDateColumn()
-  created_at: string;
+  createdAt: string;
 
   @UpdateDateColumn()
-  updated_at: string;
+  updatedA: string;
 }
