@@ -28,6 +28,6 @@ export class ConfigurationService {
   }
 
   get bcryptRounds() {
-    return this.configService.get<number>('BCRYPT_ROUNDS');
+    return Number(this.configService.get<number>('BCRYPT_ROUNDS'));
   }
 }
