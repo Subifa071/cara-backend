@@ -41,8 +41,6 @@ export class JWTAdminGuard extends AuthGuard('JWT') {
     }
 
     try {
-      // also need to check here whether the session is expired
-
       const payload = await this.jwtService.verifyAsync(token);
       if (!payload.isAdmin) {
         await this.auditService.create(
