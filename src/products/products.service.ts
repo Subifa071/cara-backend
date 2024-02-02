@@ -6,12 +6,19 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../users/entities/user.entity';
+import { AddToCartDto } from './dto/add-to-cart.dto';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { Category } from './entities/category.entity';
 import { Product } from './entities/product.entity';
 
+import * as crypto from 'crypto';
+import { scrypt } from 'crypto';
+import { promisify } from 'util';
+import { AuditsService } from '../audits/audits.service';
+import { ConfigurationService } from '../configuration/configuration.service';
+import { Cart } from './entities/cart.entity';
 @Injectable()
 export class ProductsService {
   constructor(
@@ -19,6 +26,10 @@ export class ProductsService {
     private readonly categoryRepository: Repository<Category>,
     @InjectRepository(Product)
     private readonly productRepository: Repository<Product>,
+    @InjectRepository(Cart)
+    private readonly cartRepository: Repository<Cart>,
+    private readonly configurationService: ConfigurationService,
+    private readonly auditsService: AuditsService,
   ) {}
 
   async createProduct(user: User, createProductDto: CreateProductDto) {
@@ -40,6 +51,11 @@ export class ProductsService {
       },
     } as any);
 
+    await this.auditsService.create(
+      'PRODUCT',
+      `Product created by ${user.email} with id: ${product.id}`,
+    );
+
     return product;
   }
 
@@ -58,7 +74,11 @@ export class ProductsService {
     });
   }
 
-  async updateProduct(id: string, updateProductDto: UpdateProductDto) {
+  async updateProduct(
+    user: User,
+    id: string,
+    updateProductDto: UpdateProductDto,
+  ) {
     const product = await this.productRepository.findOne({
       where: {
         id,
@@ -101,6 +121,11 @@ export class ProductsService {
       },
     );
 
+    await this.auditsService.create(
+      'PRODUCT',
+      `Product updated by ${user.email} with id: ${product.id}`,
+    );
+
     return await this.productRepository.findOne({
       where: {
         id,
@@ -127,16 +152,134 @@ export class ProductsService {
       id: id,
     });
 
+    await this.auditsService.create(
+      'PRODUCT',
+      `Product deleted by ${user.email} with id: ${product.id}`,
+    );
+
     return { deleted: true };
   }
 
-  async createCategory(createCategoryDto: CreateCategoryDto) {
-    return await this.categoryRepository.save({
+  async createCategory(user: User, createCategoryDto: CreateCategoryDto) {
+    const category = await this.categoryRepository.save({
       name: createCategoryDto.name,
+    });
+
+    await this.auditsService.create(
+      'CATEGORY',
+      `Category created by ${user.email} with id: ${category.id}`,
+    );
+
+    return category;
+  }
+
+  async editCategory(
+    user: User,
+    id: string,
+    editCategoryDto: CreateCategoryDto,
+  ) {
+    const category = await this.categoryRepository.findOne({
+      where: {
+        id,
+      },
+    });
+
+    if (!category) {
+      throw new BadRequestException('No such category');
+    }
+
+    await this.categoryRepository.update(
+      { id },
+      {
+        name: editCategoryDto.name,
+      },
+    );
+
+    await this.auditsService.create(
+      'CATEGORY',
+      `Category updated by ${user.email} with id: ${id}`,
+    );
+
+    return await this.categoryRepository.findOne({
+      where: {
+        id,
+      },
+    });
+  }
+
+  async deleteCategory(user: User, id: string) {
+    const category = await this.categoryRepository.findOne({
+      where: {
+        id,
+      },
+    });
+
+    if (!category) {
+      throw new BadRequestException('No such category');
+    }
+
+    await this.productRepository.delete({
+      category: {
+        id,
+      },
+    });
+
+    await this.categoryRepository.delete({
+      id,
+    });
+
+    await this.auditsService.create(
+      'CATEGORY',
+      `Category deleted by ${user.email} with id: ${id}`,
+    );
+
+    return await this.categoryRepository.findOne({
+      where: {
+        id,
+      },
+    });
+  }
+
+  async buy(user: User, cart: AddToCartDto) {
+    const { card, products } = cart;
+
+    const encryptedCard = (await this.encrypt(JSON.stringify(card))).toString();
+
+    return await this.cartRepository.save({
+      card: encryptedCard,
+      products: products,
     });
   }
 
   async findAllCategories() {
     return await this.categoryRepository.find({});
+  }
+
+  async encrypt(text) {
+    const password = this.configurationService.encryptedKey;
+    var algorithm = 'aes256';
+
+    const key = (await promisify(scrypt)(password, 'salt', 32)) as Buffer;
+    var cipher = crypto.createCipher(algorithm, key);
+    var encrypted = cipher.update(text, 'utf8', 'hex') + cipher.final('hex');
+    var decipher = crypto.createDecipher(algorithm, key);
+    var decrypted =
+      decipher.update(encrypted, 'hex', 'utf8') + decipher.final('utf8');
+
+    console.log('here', encrypted, decrypted);
+    return encrypted;
+  }
+
+  async decrypt(encryptedText) {
+    const password = this.configurationService.encryptedKey;
+
+    var algorithm = 'aes256';
+    const key = (await promisify(scrypt)(password, 'salt', 32)) as Buffer;
+    var decipher = crypto.createDecipher(algorithm, key);
+
+    var decrypted =
+      decipher.update(encryptedText, 'hex', 'utf8') + decipher.final('utf8');
+
+    return decrypted;
   }
 }

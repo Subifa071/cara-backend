@@ -9,6 +9,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JWTAdminGuard } from '../auth/admin.guard';
+import { JWTGuard } from '../auth/auth.guard';
 import { User } from '../users/entities/user.entity';
 import { ActiveUser } from '../utils/User';
 import { CreateCategoryDto } from './dto/create-category.dto';
@@ -20,10 +21,20 @@ import { ProductsService } from './products.service';
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
+  @UseGuards(JWTGuard)
+  @Post('buy')
+  async buy(@ActiveUser() user: User, @Body() addToCartDto: any) {
+    console.log(addToCartDto);
+    return await this.productsService.buy(user, addToCartDto);
+  }
+
   @UseGuards(JWTAdminGuard)
   @Post('category')
-  async createCategory(@Body() createCategoryDto: CreateCategoryDto) {
-    return await this.productsService.createCategory(createCategoryDto);
+  async createCategory(
+    @ActiveUser() user: User,
+    @Body() createCategoryDto: CreateCategoryDto,
+  ) {
+    return await this.productsService.createCategory(user, createCategoryDto);
   }
 
   @UseGuards(JWTAdminGuard)
@@ -54,10 +65,11 @@ export class ProductsController {
   @UseGuards(JWTAdminGuard)
   @Patch(':id')
   async update(
+    @ActiveUser() user: User,
     @Param('id') id: string,
     @Body() updateProductDto: UpdateProductDto,
   ) {
-    return await this.productsService.updateProduct(id, updateProductDto);
+    return await this.productsService.updateProduct(user, id, updateProductDto);
   }
 
   @UseGuards(JWTAdminGuard)

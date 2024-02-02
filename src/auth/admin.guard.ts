@@ -7,6 +7,7 @@ import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { AuthGuard } from '@nestjs/passport';
 import { Request } from 'express';
+import { AuditsService } from '../audits/audits.service';
 import { IS_PUBLIC_KEY } from '../configuration/constants';
 
 @Injectable()
@@ -14,6 +15,7 @@ export class JWTAdminGuard extends AuthGuard('JWT') {
   public constructor(
     private readonly reflector: Reflector,
     private readonly jwtService: JwtService,
+    private readonly auditService: AuditsService,
   ) {
     super();
   }
@@ -43,6 +45,11 @@ export class JWTAdminGuard extends AuthGuard('JWT') {
 
       const payload = await this.jwtService.verifyAsync(token);
       if (!payload.isAdmin) {
+        await this.auditService.create(
+          'USER',
+          `User with email ${payload.email} tried to access admin dashboard`,
+        );
+
         throw new UnauthorizedException(
           'Must be an admin to perform this action',
         );

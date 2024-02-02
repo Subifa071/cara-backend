@@ -3,18 +3,19 @@ import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { AuditsModule } from './audits/audits.module';
 import { AuthModule } from './auth/auth.module';
 import { ConfigurationModule } from './configuration/configuration.module';
-import { UsersModule } from './users/users.module';
 import { ProductsModule } from './products/products.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: 'localhost',
-      port: 5444,
-      username: 'postgres',
+      host: process.env.POSTGRES_HOST!,
+      port: process.env.POSTGRES_PORT! as any,
+      username: process.env.POSTGRES_USERNAME!,
       password: 'postgres',
       database: 'cara-backend',
       autoLoadEntities: true,
@@ -22,13 +23,14 @@ import { ProductsModule } from './products/products.module';
     }),
     JwtModule.register({
       global: true,
-      secret: 'SUPER_SECRET',
-      signOptions: { expiresIn: '6h' },
+      secret: process.env.JWT_SECRET!,
+      signOptions: { expiresIn: process.env.JWT_EXPIRES_IN },
     }),
     UsersModule,
     ConfigurationModule,
     AuthModule,
     ProductsModule,
+    AuditsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
