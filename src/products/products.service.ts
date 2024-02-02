@@ -262,11 +262,7 @@ export class ProductsService {
     const key = (await promisify(scrypt)(password, 'salt', 32)) as Buffer;
     var cipher = crypto.createCipher(algorithm, key);
     var encrypted = cipher.update(text, 'utf8', 'hex') + cipher.final('hex');
-    var decipher = crypto.createDecipher(algorithm, key);
-    var decrypted =
-      decipher.update(encrypted, 'hex', 'utf8') + decipher.final('utf8');
-
-    console.log('here', encrypted, decrypted);
+   
     return encrypted;
   }
 
