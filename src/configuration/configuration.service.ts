@@ -7,9 +7,9 @@ export class ConfigurationService {
   constructor(private readonly configService: ConfigService) {}
   get redis(): IORedis {
     const redis = new IORedis({
-      host: 'localhost',
-      port: '6379',
-      password: '',
+      host: this.configService.get<string>('REDIS_USERNAME'),
+      port: this.configService.get<number>('REDIS_PORT'),
+      password: this.configService.get('REDIS_PASSWORD'),
     } as any) as any;
 
     return redis;
@@ -25,5 +25,9 @@ export class ConfigurationService {
       key: this.configService.get<string>('MAILGUN_KEY'),
       from: this.configService.get<string>('MAILGUN_FROM'),
     };
+  }
+
+  get bcryptRounds() {
+    return this.configService.get<number>('BCRYPT_ROUNDS');
   }
 }

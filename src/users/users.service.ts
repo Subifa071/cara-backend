@@ -46,7 +46,10 @@ export class UsersService {
       type: createUserDto.type ?? USER_TYPE.BUYER,
     });
 
-    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+    const hashedPassword = await bcrypt.hash(
+      createUserDto.password,
+      this.configurationService.bcryptRounds,
+    );
 
     await this.passwordRepository.save({
       password: hashedPassword,
@@ -100,7 +103,10 @@ export class UsersService {
           return bcrypt.compareSync(password, _password.password);
         });
 
-        const hashedPassword = await bcrypt.hash(password, 10);
+        const hashedPassword = await bcrypt.hash(
+          password,
+          this.configurationService.bcryptRounds,
+        );
 
         if (matchPassword) {
           throw new BadRequestException(
